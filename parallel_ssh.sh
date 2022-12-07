@@ -6,5 +6,5 @@ host_list=${script_dir}/host_list.conf          ##Will point to file with list o
 ##Will feed list of hosts into while loop and run auto_upgrade.sh which holds the automated upgrade script
 while read p;
 do
-sshpass -vvv -p 1qaz@WSX ssh postgres@${host_list} 'bash -s' < ${script_dir}/auto_upgrade.sh &
+sshpass -vvv -p 1qaz@WSX ssh postgres@${p} 'bash -s' < ${script_dir}/auto_upgrade.sh &
 done <${host_list}
