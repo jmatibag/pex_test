@@ -15,23 +15,26 @@ for db_list in `psql -t -c "select datname from pg_database where not datistempl
    pg_dump -Fc -f ${backup_dir}/${db_list}_backup.dmp ${db_list}
 done
 
-pg_dumpall -v --globals-only -f ${backup_dir}/globals-only.sql          ##Backup globals
+pg_dumpall -v --globals-only -f ${backup_dir}/globals-only.sql    ##Backup globals
 
 
-printf '%s\n' y y | yum install postgresql${new_pg_version}*
+printf '%s\n' y y | yum install postgresql${new_pg_version}*      ##Automatically confirm prompts when installing desired Postgres version
 
-/usr/pgsql-${new_pg_version}/bin/initdb /local/pgsql/data_${new_pg_version}
+/usr/pgsql-${new_pg_version}/bin/initdb /local/pgsql/data_${new_pg_version}      ##Initialize data directory of new Postgres version
 
-check_result=`/usr/pgsql-${new_pg_version}/bin/pg_upgrade --old-bindir=/usr/pgsql-${old_pg_version}/bin/ --new-bindir=/usr/pgsql-${new_pg_version}/bin/ --old-datadir=${old_data_dir}/ --new-datadir=${new_data_dir}/ --check | tail`
+check_result=`/usr/pgsql-${new_pg_version}/bin/pg_upgrade --old-bindir=/usr/pgsql-${old_pg_version}/bin/ --new-bindir=/usr/pgsql-${new_pg_version}/bin/ --old-datadir=${old_data_dir}/ --new-datadir=${new_data_dir}/ --check | tail`     ##Check if pre-requisites are met before pg_upgrade run
 
+##Proceed with pg_upgrade if old and new Postgres instances are compatible, if not, print message regarding failure
 if [ ${check_result} == "*Clusters are compatible*" ]
 then
-        /usr/pgsql-${old_pg_version}/bin/pg_ctl -D ${old_data_dir} stop
-        /usr/pgsql-${new_pg_version}/bin/pg_upgrade --old-bindir=/usr/pgsql-${old_pg_version}/bin/ --new-bindir=/usr/pgsql-${new_pg_version}/bin/ --old-datadir=${old_data_dir}/ --new-datadir=${new_data_dir}/ > ${log_dir}/pg_upgrade_prereq.log
+        /usr/pgsql-${old_pg_version}/bin/pg_ctl -D ${old_data_dir} stop    ##Stop old running instance
+        /usr/pgsql-${new_pg_version}/bin/pg_upgrade --old-bindir=/usr/pgsql-${old_pg_version}/bin/ --new-bindir=/usr/pgsql-${new_pg_version}/bin/ --old-datadir=${old_data_dir}/ --new-datadir=${new_data_dir}/ > ${log_dir}/pg_upgrade_prereq.log       ##Start pg_upgrade run proper
+        ##Check if upgrade is successful, if not, print message regarding failure
         if grep "Upgrade Complete" ${log_dir}/pg_upgrade_prereq.log
         then
-                /usr/pgsql-${new_pg_version}/bin/pg_ctl -D ${new_data_dir} start
-                /usr/pgsql-${new_pg_version}/bin/psql -c "SELECT now() - pg_postmaster_start_time() as uptime;" > ${log_dir}/pg_upgrade_prereq.log
+                /usr/pgsql-${new_pg_version}/bin/pg_ctl -D ${new_data_dir} start    ##Start new Postgres instance
+                /usr/pgsql-${new_pg_version}/bin/psql -c "SELECT now() - pg_postmaster_start_time() as uptime;" > ${log_dir}/pg_upgrade_prereq.log    ##Do a test check if instance is up and running and accepting connections
+                ##Check if DB is up and running and accepting connections, if not, check system logs on the data directory
                 if grep "uptime" ${log_dir}/pg_upgrade_prereq.log
                 then
                         echo "DB is upgraded and up and running..."
