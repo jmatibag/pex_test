@@ -18,7 +18,7 @@ done
 pg_dumpall -v --globals-only -f ${backup_dir}/globals-only.sql    ##Backup globals
 
 
-printf '%s\n' y y | yum install postgresql${new_pg_version}*      ##Automatically confirm prompts when installing desired Postgres version
+yes | apt-get install postgresql-${new_pg_version}*      ##Automatically confirm prompts when installing desired Postgres version
 
 /usr/pgsql-${new_pg_version}/bin/initdb /local/pgsql/data_${new_pg_version}      ##Initialize data directory of new Postgres version
 
